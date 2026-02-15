@@ -18,10 +18,10 @@ client = bigquery.Client(credentials=creds, project=info["project_id"])
 sql = """
 select
     datetime_trunc(timestamp_seconds(((height * 30) + 1598306400)), day) as date,
-    percentile_cont(parent_base_fee, 0.5) over (
+    percentile_cont(cast(parent_base_fee as float64), 0.5) over (
         partition by datetime_trunc(timestamp_seconds(((height * 30) + 1598306400)), day)
     ) as base_fee_p50_nanofil,
-    percentile_cont(parent_base_fee, 0.95) over (
+    percentile_cont(cast(parent_base_fee as float64), 0.95) over (
         partition by datetime_trunc(timestamp_seconds(((height * 30) + 1598306400)), day)
     ) as base_fee_p95_nanofil
 from `lily-data.lily.block_headers`

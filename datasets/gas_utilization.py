@@ -18,7 +18,7 @@ client = bigquery.Client(credentials=creds, project=info["project_id"])
 sql = """
 select
     datetime_trunc(timestamp_seconds(((height * 30) + 1598306400)), day) as date,
-    round(100.0 * sum(gas_used) / nullif(sum(gas_limit), 0), 4) as gas_utilization_pct
+    round(100.0 * sum(cast(gas_used as float64)) / nullif(sum(cast(gas_limit as float64)), 0), 4) as gas_utilization_pct
 from `lily-data.lily.block_headers`
 where height > 4000000
 group by 1
