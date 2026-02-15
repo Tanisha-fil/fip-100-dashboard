@@ -248,14 +248,13 @@ import renewalRate from "../../public/renewal_rate.json";
 					subtitle="Source: PreCommitSectorBatch2 messages"
 					yLabel="Messages"
 				/>
-				<MultiLineChart
+				<LineChart
 					data={gasPerSectorByPath}
 					x="date"
-					ys={["PreCommitSectorBatch2", "ProveCommitSectors3", "ProveCommitAggregate", "ProveReplicaUpdates3"]}
-					labels={["PreCommitSectorBatch2", "ProveCommitSectors3", "ProveCommitAggregate", "ProveReplicaUpdates3"]}
-					title="Avg Gas per Sector by Onboarding Method"
+					y="PreCommitSectorBatch2"
+					label="Avg Gas per Sector (PreCommitSectorBatch2)"
 					subtitle="Source: derived_gas_outputs joined with parsed_messages"
-					yLabel="attoFIL"
+					yLabel="nanoFIL"
 				/>
 				<LineChart
 					data={smallBatchCount}
