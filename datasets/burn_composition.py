@@ -16,9 +16,19 @@ creds = service_account.Credentials.from_service_account_info(info)
 client = bigquery.Client(credentials=creds, project=info["project_id"])
 
 sql = """
+with gas as (
+    select
+        datetime_trunc(timestamp_seconds(((g.height * 30) + 1598306400)), day) as date,
+        pm.method,
+        (cast(g.base_fee_burn as float64) + cast(g.over_estimation_burn as float64)) / 1e18 as fee_fil
+    from `lily-data.lily.derived_gas_outputs` g
+    join `lily-data.lily.parsed_messages` pm on g.cid = pm.cid
+    where g.height > 4000000
+)
+
 select
-    datetime_trunc(timestamp_seconds(((height * 30) + 1598306400)), day) as date,
-    sum(case when method = 'ApplyRewards' then (cast(base_fee_burn as float64) + cast(over_estimation_burn as float64)) / 1e18 else 0 end) as penalty_burn_fil,
+    date,
+    sum(case when method = 'ApplyRewards' then fee_fil else 0 end) as penalty_burn_fil,
     sum(case
         when method in (
             'PreCommitSectorBatch2',
@@ -26,8 +36,7 @@ select
             'ProveCommitAggregate',
             'ProveReplicaUpdates3',
             'PreCommitSector'
-        ) then (cast(base_fee_burn as float64) + cast(over_estimation_burn as float64)) / 1e18
-        else 0
+        ) then fee_fil else 0
     end) as sector_fee_burn_fil,
     sum(case
         when method not in (
@@ -37,11 +46,9 @@ select
             'ProveCommitAggregate',
             'ProveReplicaUpdates3',
             'PreCommitSector'
-        ) then (cast(base_fee_burn as float64) + cast(over_estimation_burn as float64)) / 1e18
-        else 0
+        ) then fee_fil else 0
     end) as other_burn_fil
-from `lily-data.lily.derived_gas_outputs`
-where height > 4000000
+from gas
 group by 1
 order by 1 desc
 """

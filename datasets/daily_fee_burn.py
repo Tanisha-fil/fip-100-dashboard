@@ -21,12 +21,12 @@ client = bigquery.Client(credentials=creds, project=info["project_id"])
 sql = """
 with gas as (
     select
-        datetime_trunc(timestamp_seconds(((height * 30) + 1598306400)), day) as date,
-        height,
-        method,
-        (cast(base_fee_burn as float64) + cast(over_estimation_burn as float64)) / 1e18 as fee_fil
-    from `lily-data.lily.derived_gas_outputs`
-    where height > 4000000
+        datetime_trunc(timestamp_seconds(((g.height * 30) + 1598306400)), day) as date,
+        pm.method,
+        (cast(g.base_fee_burn as float64) + cast(g.over_estimation_burn as float64)) / 1e18 as fee_fil
+    from `lily-data.lily.derived_gas_outputs` g
+    join `lily-data.lily.parsed_messages` pm on g.cid = pm.cid
+    where g.height > 4000000
 )
 
 select
