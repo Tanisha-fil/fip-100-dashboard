@@ -1,8 +1,20 @@
 ---
 import LineChart from "../components/LineChart.astro";
+import MultiLineChart from "../components/MultiLineChart.astro";
 import powerAdded from "../../public/power_added.json";
 import participatingMiners from "../../public/participating_miner_count.json";
 import precommitSectorBatchSize from "../../public/precommit_sector_batch_size.json";
+import gasPerSectorByPath from "../../public/gas_per_sector_by_path.json";
+import smallBatchCount from "../../public/small_batch_count.json";
+import filReturnPerSector from "../../public/fil_return_per_sector.json";
+import dailyFeeBurn from "../../public/daily_fee_burn.json";
+import sectorLifetimeCost from "../../public/sector_lifetime_cost.json";
+import baseFeePercentiles from "../../public/base_fee_percentiles.json";
+import gasUtilization from "../../public/gas_utilization.json";
+import burnComposition from "../../public/burn_composition.json";
+import circulatingSupplyVsBurn from "../../public/circulating_supply_vs_burn.json";
+import sectorExtensions from "../../public/sector_extensions.json";
+import renewalRate from "../../public/renewal_rate.json";
 ---
 
 <html lang="en">
@@ -99,6 +111,16 @@ import precommitSectorBatchSize from "../../public/precommit_sector_batch_size.j
 				gap: 2.25rem;
 			}
 
+			.category-header {
+				margin: 0;
+				font-size: 0.75rem;
+				text-transform: uppercase;
+				letter-spacing: 0.1em;
+				color: var(--muted);
+				border-bottom: 1px solid var(--border);
+				padding-bottom: 0.4rem;
+			}
+
 			.header-links {
 				grid-area: link;
 				justify-self: end;
@@ -156,6 +178,9 @@ import precommitSectorBatchSize from "../../public/precommit_sector_batch_size.j
 			</header>
 
 			<section class="charts" aria-label="Charts">
+
+				<!-- ── Network Overview ── -->
+				<h2 class="category-header">Network Overview</h2>
 				<LineChart
 					data={powerAdded}
 					x="date"
@@ -177,6 +202,9 @@ import precommitSectorBatchSize from "../../public/precommit_sector_batch_size.j
 					label="Participating Miner Count"
 					yLabel="Miners"
 				/>
+
+				<!-- ── Sector Onboarding Economics & Throughput ── -->
+				<h2 class="category-header">Sector Onboarding Economics &amp; Throughput</h2>
 				<LineChart
 					data={precommitSectorBatchSize}
 					x="date"
@@ -193,6 +221,122 @@ import precommitSectorBatchSize from "../../public/precommit_sector_batch_size.j
 					subtitle="Source: PreCommitSectorBatch2 messages"
 					yLabel="Messages"
 				/>
+				<MultiLineChart
+					data={gasPerSectorByPath}
+					x="date"
+					ys={["PreCommitSectorBatch2", "ProveCommitSectors3", "ProveCommitAggregate", "ProveReplicaUpdates3"]}
+					labels={["PreCommitSectorBatch2", "ProveCommitSectors3", "ProveCommitAggregate", "ProveReplicaUpdates3"]}
+					title="Avg Gas per Sector by Onboarding Method"
+					subtitle="Source: derived_gas_outputs joined with parsed_messages"
+					yLabel="attoFIL"
+				/>
+				<LineChart
+					data={smallBatchCount}
+					x="date"
+					y="small_batch_pct"
+					label="Small Batch % (< 4 sectors)"
+					subtitle="% of PreCommitSectorBatch2 messages below break-even batch size"
+					yLabel="%"
+				/>
+				<LineChart
+					data={filReturnPerSector}
+					x="date"
+					y="fil_return_per_sector"
+					label="FIL Block Reward Return per New Sector"
+					subtitle="Approximation: daily block rewards / daily sectors added"
+					yLabel="FIL / sector"
+				/>
+
+				<!-- ── Daily-Fee Burden ── -->
+				<h2 class="category-header">Daily-Fee Burden</h2>
+				<MultiLineChart
+					data={dailyFeeBurn}
+					x="date"
+					ys={["total_fee_burn_fil", "sector_fee_burn_fil"]}
+					labels={["Total Fee Burn", "Sector Fee Burn"]}
+					title="Daily Gas Fee Burn"
+					subtitle="Source: derived_gas_outputs"
+					yLabel="FIL"
+				/>
+				<LineChart
+					data={sectorLifetimeCost}
+					x="date"
+					y="avg_sector_lifetime_cost_fil"
+					label="Avg Per-Sector Lifetime Cost (Gas)"
+					subtitle="Onboarding gas cost per sector; excludes DailyFee until lily exposes nv25 SectorOnChainInfo"
+					yLabel="FIL"
+				/>
+
+				<!-- ── Base-Fee & Blockspace Health ── -->
+				<h2 class="category-header">Base-Fee &amp; Blockspace Health</h2>
+				<MultiLineChart
+					data={baseFeePercentiles}
+					x="date"
+					ys={["base_fee_p50_nanofil", "base_fee_p95_nanofil"]}
+					labels={["p50 Base Fee", "p95 Base Fee"]}
+					title="Daily Base Fee Percentiles"
+					subtitle="Source: block_headers.parent_base_fee"
+					yLabel="nanoFIL"
+				/>
+				<LineChart
+					data={gasUtilization}
+					x="date"
+					y="gas_utilization_pct"
+					label="Daily Gas Utilization Rate"
+					subtitle="sum(gas_used) / sum(gas_limit) per day"
+					yLabel="%"
+				/>
+
+				<!-- ── Network Burn & Token-Economics ── -->
+				<h2 class="category-header">Network Burn &amp; Token-Economics</h2>
+				<MultiLineChart
+					data={burnComposition}
+					x="date"
+					ys={["penalty_burn_fil", "sector_fee_burn_fil", "other_burn_fil"]}
+					labels={["Penalty Burn", "Sector Fee Burn", "Other Burn"]}
+					title="Daily Burn Composition"
+					subtitle="Source: derived_gas_outputs"
+					yLabel="FIL"
+				/>
+				<MultiLineChart
+					data={circulatingSupplyVsBurn}
+					x="date"
+					ys={["circulating_fil", "burnt_fil"]}
+					labels={["Circulating FIL", "Burnt FIL"]}
+					title="Circulating Supply vs Cumulative Burn"
+					subtitle="Source: chain_economics"
+					yLabel="FIL"
+				/>
+
+				<!-- ── Grace-Period Behaviour ── -->
+				<h2 class="category-header">Grace-Period Behaviour</h2>
+				<MultiLineChart
+					data={sectorExtensions}
+					x="date"
+					ys={["extensions_per_day", "baseline_rolling_30d"]}
+					labels={["Extensions / Day", "30-Day Rolling Avg"]}
+					title="Sector Extensions per Day"
+					subtitle="Source: ExtendSectorExpiration + ExtendSectorExpiration2 messages"
+					yLabel="Extensions"
+				/>
+				<MultiLineChart
+					data={renewalRate}
+					x="date"
+					ys={["expired_count", "extended_count"]}
+					labels={["Expired", "Extended"]}
+					title="Sector Expiry vs Extension Count"
+					subtitle="Source: sector_events"
+					yLabel="Sectors"
+				/>
+				<LineChart
+					data={renewalRate}
+					x="date"
+					y="renewal_rate_pct"
+					label="Sector Renewal Rate"
+					subtitle="% of expiring sectors that get extended"
+					yLabel="%"
+				/>
+
 			</section>
 		</main>
 	</body>

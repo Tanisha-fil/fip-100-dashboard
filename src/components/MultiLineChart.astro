@@ -1,0 +1,206 @@
+---
+type MultiLineChartProps = {
+  data: Array<Record<string, string | number>>;
+  x: string;
+  ys: string[];
+  labels: string[];
+  title: string;
+  subtitle?: string;
+  yLabel?: string;
+};
+
+const { data, x, ys, labels, title, subtitle, yLabel } =
+  Astro.props as MultiLineChartProps;
+
+const datasets = ys.map((y, i) => {
+  const points = data
+    .map((row) => {
+      const value = String(row[x]);
+      return {
+        x: new Date(value).getTime(),
+        y: Number(row[y]),
+        label: value,
+      };
+    })
+    .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y))
+    .sort((a, b) => a.x - b.x);
+  return { label: labels[i] ?? y, points };
+});
+
+const payload = JSON.stringify(datasets);
+const anchorId = title.trim().toLowerCase().replace(/\s+/g, "-");
+const titleId = `${anchorId}-title`;
+---
+
+<section class="line-chart" id={anchorId} aria-labelledby={titleId}>
+  <h2 class="chart-title" id={titleId}>
+    <a href={`#${anchorId}`}>{title}</a>
+  </h2>
+  {subtitle ? <p class="chart-subtitle">{subtitle}</p> : null}
+  <figure class="chart-figure">
+    <canvas
+      role="img"
+      aria-label={title}
+      data-multi-line-chart={payload}
+      data-y-label={yLabel ?? ""}
+    ></canvas>
+  </figure>
+</section>
+
+<style>
+  .line-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0;
+  }
+
+  .chart-title {
+    margin: 0;
+    font-weight: 600;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+  }
+
+  .chart-title a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .chart-title a:hover {
+    text-decoration: underline;
+  }
+
+  .chart-subtitle {
+    margin: 0;
+    color: var(--muted, #475569);
+    font-size: 0.85rem;
+  }
+
+  .chart-figure {
+    margin: 0;
+  }
+
+  .chart-figure canvas {
+    display: block;
+    inline-size: 100%;
+    aspect-ratio: 16 / 9;
+  }
+</style>
+
+<script>
+  import Chart from "chart.js/auto";
+  import type { ScatterDataPoint, TooltipItem } from "chart.js";
+  import annotationPlugin from "chartjs-plugin-annotation";
+  import "chartjs-adapter-date-fns";
+
+  Chart.register(annotationPlugin);
+
+  const PALETTE = [
+    "#0f172a",
+    "#d82124",
+    "#2563eb",
+    "#16a34a",
+    "#9333ea",
+    "#ea580c",
+  ];
+
+  type ChartPoint = ScatterDataPoint & { label: string };
+  type DatasetEntry = { label: string; points: ChartPoint[] };
+
+  document
+    .querySelectorAll<HTMLCanvasElement>("canvas[data-multi-line-chart]")
+    .forEach((canvas) => {
+      const raw = canvas.dataset.multiLineChart;
+      if (!raw) return;
+
+      const entries = JSON.parse(raw) as DatasetEntry[];
+      const yLabel = (canvas.dataset.yLabel || "").trim();
+      const strokeColor =
+        getComputedStyle(canvas).getPropertyValue("--ink").trim() || "#0f172a";
+
+      new Chart(canvas, {
+        type: "line",
+        data: {
+          datasets: entries.map((entry, i) => ({
+            label: entry.label,
+            data: entry.points,
+            pointRadius: 0,
+            borderColor: PALETTE[i % PALETTE.length],
+            borderWidth: 2,
+            tension: 0,
+          })),
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          normalized: true,
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            legend: { display: true, position: "top" },
+            tooltip: {
+              intersect: false,
+              mode: "index",
+              callbacks: {
+                title: ([first]: TooltipItem<"line">[]) =>
+                  ((first?.raw as ChartPoint | undefined)?.label) ?? "",
+              },
+            },
+            annotation: {
+              annotations: {
+                networkUpgradeV25: {
+                  type: "line",
+                  xMin: "2025-04-07",
+                  xMax: "2025-04-07",
+                  borderColor: "#d82124",
+                  borderWidth: 1,
+                  borderDash: [8, 8],
+                  label: {
+                    display: true,
+                    content: "nv25",
+                    rotation: 0,
+                    backgroundColor: "white",
+                    color: "#d82124",
+                    font: { size: 12, weight: 600 },
+                    padding: 0,
+                    position: "start",
+                    yAdjust: -10,
+                  },
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              type: "time",
+              time: {
+                unit: "quarter",
+                tooltipFormat: "PPP",
+                displayFormats: { quarter: "MMM yyyy" },
+              },
+              grid: { display: false },
+              border: { color: strokeColor, width: 1 },
+              ticks: { color: strokeColor, maxRotation: 0 },
+            },
+            y: {
+              beginAtZero: true,
+              grace: "5%",
+              ticks: { precision: 0, color: strokeColor },
+              border: { color: strokeColor, width: 1 },
+              grid: { color: "rgba(15, 23, 42, 0.08)" },
+              title: {
+                display: Boolean(yLabel),
+                text: yLabel,
+                color: strokeColor,
+                padding: { bottom: 4 },
+                font: { weight: 600 },
+              },
+            },
+          },
+        },
+      });
+    });
+</script>
