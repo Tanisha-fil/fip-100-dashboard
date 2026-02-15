@@ -33,35 +33,53 @@ const titleId = `${anchorId}-title`;
 ---
 
 <section class="line-chart" id={anchorId} aria-labelledby={titleId}>
-  <h2 class="chart-title" id={titleId}>
-    <a href={`#${anchorId}`}>{title}</a>
-  </h2>
-  {subtitle ? <p class="chart-subtitle">{subtitle}</p> : null}
-  <figure class="chart-figure">
-    <canvas
-      role="img"
-      aria-label={title}
-      data-multi-line-chart={payload}
-      data-y-label={yLabel ?? ""}
-    ></canvas>
-  </figure>
+  <div class="chart-card">
+    <div class="chart-header">
+      <h2 class="chart-title" id={titleId}>
+        <a href={`#${anchorId}`}>{title}</a>
+      </h2>
+      {subtitle ? <p class="chart-subtitle">{subtitle}</p> : null}
+    </div>
+    <figure class="chart-figure">
+      <canvas
+        role="img"
+        aria-label={title}
+        data-multi-line-chart={payload}
+        data-y-label={yLabel ?? ""}
+      ></canvas>
+    </figure>
+  </div>
 </section>
 
 <style>
   .line-chart {
+    margin: 0;
+  }
+
+  .chart-card {
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 0.75rem;
+    padding: 1.5rem 1.5rem 1.25rem;
+    box-shadow: 0 1px 6px rgba(15, 23, 42, 0.06);
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    margin: 0;
+    gap: 0.75rem;
+  }
+
+  .chart-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
   }
 
   .chart-title {
     margin: 0;
-    font-weight: 600;
-    font-size: 1rem;
+    font-weight: 700;
+    font-size: 0.9rem;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    line-height: 1.2;
+    letter-spacing: 0.06em;
+    line-height: 1.3;
   }
 
   .chart-title a {
@@ -76,7 +94,8 @@ const titleId = `${anchorId}-title`;
   .chart-subtitle {
     margin: 0;
     color: var(--muted, #475569);
-    font-size: 0.85rem;
+    font-size: 0.78rem;
+    line-height: 1.5;
   }
 
   .chart-figure {
@@ -86,7 +105,7 @@ const titleId = `${anchorId}-title`;
   .chart-figure canvas {
     display: block;
     inline-size: 100%;
-    aspect-ratio: 16 / 9;
+    aspect-ratio: 3 / 1;
   }
 </style>
 
@@ -100,9 +119,9 @@ const titleId = `${anchorId}-title`;
 
   const PALETTE = [
     "#0f172a",
-    "#d82124",
     "#2563eb",
     "#16a34a",
+    "#d82124",
     "#9333ea",
     "#ea580c",
   ];
@@ -118,8 +137,6 @@ const titleId = `${anchorId}-title`;
 
       const entries = JSON.parse(raw) as DatasetEntry[];
       const yLabel = (canvas.dataset.yLabel || "").trim();
-      const strokeColor =
-        getComputedStyle(canvas).getPropertyValue("--ink").trim() || "#0f172a";
 
       new Chart(canvas, {
         type: "line",
@@ -140,10 +157,28 @@ const titleId = `${anchorId}-title`;
           normalized: true,
           interaction: { mode: "index", intersect: false },
           plugins: {
-            legend: { display: true, position: "top" },
+            legend: {
+              display: true,
+              position: "top",
+              align: "start",
+              labels: {
+                color: "#475569",
+                font: { size: 11 },
+                boxWidth: 12,
+                boxHeight: 2,
+                padding: 16,
+                usePointStyle: true,
+                pointStyle: "line",
+              },
+            },
             tooltip: {
               intersect: false,
               mode: "index",
+              backgroundColor: "#0f172a",
+              titleColor: "#94a3b8",
+              bodyColor: "#f8fafc",
+              padding: 10,
+              cornerRadius: 6,
               callbacks: {
                 title: ([first]: TooltipItem<"line">[]) =>
                   ((first?.raw as ChartPoint | undefined)?.label) ?? "",
@@ -157,17 +192,18 @@ const titleId = `${anchorId}-title`;
                   xMax: "2025-04-07",
                   borderColor: "#d82124",
                   borderWidth: 1,
-                  borderDash: [8, 8],
+                  borderDash: [6, 6],
                   label: {
                     display: true,
                     content: "nv25",
                     rotation: 0,
-                    backgroundColor: "white",
+                    backgroundColor: "rgba(255,255,255,0.9)",
                     color: "#d82124",
-                    font: { size: 12, weight: 600 },
-                    padding: 0,
+                    font: { size: 11, weight: 600 },
+                    padding: { top: 2, bottom: 2, left: 4, right: 4 },
                     position: "start",
-                    yAdjust: -10,
+                    yAdjust: -12,
+                    borderRadius: 3,
                   },
                 },
               },
@@ -182,21 +218,29 @@ const titleId = `${anchorId}-title`;
                 displayFormats: { quarter: "MMM yyyy" },
               },
               grid: { display: false },
-              border: { color: strokeColor, width: 1 },
-              ticks: { color: strokeColor, maxRotation: 0 },
+              border: { display: false },
+              ticks: {
+                color: "#94a3b8",
+                maxRotation: 0,
+                font: { size: 11 },
+              },
             },
             y: {
               beginAtZero: true,
               grace: "5%",
-              ticks: { precision: 0, color: strokeColor },
-              border: { color: strokeColor, width: 1 },
-              grid: { color: "rgba(15, 23, 42, 0.08)" },
+              ticks: {
+                precision: 0,
+                color: "#94a3b8",
+                font: { size: 11 },
+              },
+              border: { display: false },
+              grid: { color: "rgba(15, 23, 42, 0.06)" },
               title: {
                 display: Boolean(yLabel),
                 text: yLabel,
-                color: strokeColor,
+                color: "#94a3b8",
                 padding: { bottom: 4 },
-                font: { weight: 600 },
+                font: { size: 11, weight: 600 },
               },
             },
           },
