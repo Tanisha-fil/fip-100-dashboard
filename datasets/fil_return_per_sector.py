@@ -21,7 +21,7 @@ with daily_rewards as (
         datetime_trunc(timestamp_seconds(((height * 30) + 1598306400)), day) as date,
         -- 5 blocks/epoch * 2880 epochs/day * smoothed_reward approximation
         -- Use new_baseline_power as a proxy available in chain_economics
-        max(total_mined_fil) as total_mined_fil
+        max(cast(total_mined_fil as float64)) as total_mined_fil
     from `lily-data.lily.chain_economics`
     where height > 4000000
     group by 1
@@ -40,7 +40,7 @@ daily_sectors as (
         count(*) as sectors_added
     from `lily-data.lily.power_actor_claims`
     where height > 4000000
-      and raw_byte_power > 0
+      and cast(raw_byte_power as float64) > 0
     group by 1
 )
 

@@ -18,8 +18,8 @@ client = bigquery.Client(credentials=creds, project=info["project_id"])
 sql = """
 select
     datetime_trunc(timestamp_seconds(((height * 30) + 1598306400)), day) as date,
-    avg(circulating_fil) as circulating_fil,
-    avg(burnt_fil) as burnt_fil
+    avg(cast(circulating_fil as float64)) as circulating_fil,
+    avg(cast(burnt_fil as float64)) as burnt_fil
 from `lily-data.lily.chain_economics`
 where height > 4000000
 group by 1
