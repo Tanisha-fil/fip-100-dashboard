@@ -25,7 +25,7 @@ select
             / nullif(countif(event = 'SECTOR_EXPIRED') + countif(event = 'SECTOR_EXTENDED'), 0),
         2
     ) as renewal_rate_pct
-from `lily-data.lily.sector_events`
+from `lily-data.lily.miner_sector_events`
 where height > 4000000
   and event in ('SECTOR_EXPIRED', 'SECTOR_EXTENDED')
 group by 1

@@ -19,10 +19,8 @@ sql = """
 with daily_rewards as (
     select
         datetime_trunc(timestamp_seconds(((height * 30) + 1598306400)), day) as date,
-        -- 5 blocks/epoch * 2880 epochs/day * smoothed_reward approximation
-        -- Use new_baseline_power as a proxy available in chain_economics
-        max(cast(total_mined_fil as float64)) as total_mined_fil
-    from `lily-data.lily.chain_economics`
+        max(cast(total_mined_reward as float64)) as cumulative_mined_reward
+    from `lily-data.lily.chain_rewards`
     where height > 4000000
     group by 1
 ),
@@ -30,7 +28,7 @@ with daily_rewards as (
 daily_rewards_delta as (
     select
         date,
-        total_mined_fil - lag(total_mined_fil) over (order by date) as daily_reward_fil
+        cumulative_mined_reward - lag(cumulative_mined_reward) over (order by date) as daily_reward_fil
     from daily_rewards
 ),
 
@@ -40,7 +38,7 @@ daily_sectors as (
         count(*) as sectors_added
     from `lily-data.lily.power_actor_claims`
     where height > 4000000
-      and cast(raw_byte_power as float64) > 0
+      and raw_byte_power > 0
     group by 1
 )
 

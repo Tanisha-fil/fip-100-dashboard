@@ -16,20 +16,20 @@ creds = service_account.Credentials.from_service_account_info(info)
 client = bigquery.Client(credentials=creds, project=info["project_id"])
 
 sql = """
+with daily as (
+    select
+        datetime_trunc(timestamp_seconds(((height * 30) + 1598306400)), day) as date,
+        cast(parent_base_fee as float64) as base_fee
+    from `lily-data.lily.block_headers`
+    where height > 4000000
+)
+
 select
-    datetime_trunc(timestamp_seconds(((height * 30) + 1598306400)), day) as date,
-    percentile_cont(cast(parent_base_fee as float64), 0.5) over (
-        partition by datetime_trunc(timestamp_seconds(((height * 30) + 1598306400)), day)
-    ) as base_fee_p50_nanofil,
-    percentile_cont(cast(parent_base_fee as float64), 0.95) over (
-        partition by datetime_trunc(timestamp_seconds(((height * 30) + 1598306400)), day)
-    ) as base_fee_p95_nanofil
-from `lily-data.lily.block_headers`
-where height > 4000000
-qualify row_number() over (
-    partition by datetime_trunc(timestamp_seconds(((height * 30) + 1598306400)), day)
-    order by height
-) = 1
+    date,
+    percentile_cont(base_fee, 0.5) over (partition by date) as base_fee_p50_nanofil,
+    percentile_cont(base_fee, 0.95) over (partition by date) as base_fee_p95_nanofil
+from daily
+qualify row_number() over (partition by date order by base_fee) = 1
 order by date desc
 """
 
