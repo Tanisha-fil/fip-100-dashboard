@@ -47,7 +47,7 @@ group by date
 order by date desc
 """
 
-data = client.query(sql).to_arrow(create_bqstorage_client=True)
+data = client.query(sql).to_arrow(create_bqstorage_client=False)
 
 df = pl.DataFrame(data).with_columns(pl.col("date").dt.strftime("%Y-%m-%d"))
 
