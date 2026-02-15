@@ -47,14 +47,14 @@ with sector_msgs as (
 gas as (
     select
         cid,
-        (cast(base_fee_burn as float64) + cast(over_estimation_burn as float64)) / 1e18 as fee_fil
+        (cast(base_fee_burn as float64) + cast(over_estimation_burn as float64)) / 1e9 as fee_nanofil
     from `lily-data.lily.derived_gas_outputs`
     where height > 4000000
 )
 
 select
     s.date,
-    avg(safe_divide(g.fee_fil, s.sector_count)) as avg_sector_lifetime_cost_fil
+    avg(safe_divide(g.fee_nanofil, s.sector_count)) as avg_sector_lifetime_cost_nanofil
 from sector_msgs s
 join gas g on s.cid = g.cid
 where s.sector_count > 0
