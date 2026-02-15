@@ -18,7 +18,7 @@ client = bigquery.Client(credentials=creds, project=info["project_id"])
 sql = """
 select
     datetime_trunc(timestamp_seconds(((height * 30) + 1598306400)), day) as date,
-    sum(case when method = 'ApplyRewards' then (base_fee_burn + over_estimation_burn) / 1e18 else 0 end) as penalty_burn_fil,
+    sum(case when method = 'ApplyRewards' then (cast(base_fee_burn as float64) + cast(over_estimation_burn as float64)) / 1e18 else 0 end) as penalty_burn_fil,
     sum(case
         when method in (
             'PreCommitSectorBatch2',
@@ -26,7 +26,7 @@ select
             'ProveCommitAggregate',
             'ProveReplicaUpdates3',
             'PreCommitSector'
-        ) then (base_fee_burn + over_estimation_burn) / 1e18
+        ) then (cast(base_fee_burn as float64) + cast(over_estimation_burn as float64)) / 1e18
         else 0
     end) as sector_fee_burn_fil,
     sum(case
@@ -37,7 +37,7 @@ select
             'ProveCommitAggregate',
             'ProveReplicaUpdates3',
             'PreCommitSector'
-        ) then (base_fee_burn + over_estimation_burn) / 1e18
+        ) then (cast(base_fee_burn as float64) + cast(over_estimation_burn as float64)) / 1e18
         else 0
     end) as other_burn_fil
 from `lily-data.lily.derived_gas_outputs`

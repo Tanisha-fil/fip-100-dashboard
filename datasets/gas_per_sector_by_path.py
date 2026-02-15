@@ -34,7 +34,7 @@ with sector_msgs as (
 gas as (
     select
         cid,
-        base_fee_burn + over_estimation_burn as total_gas_cost
+        cast(base_fee_burn as float64) + cast(over_estimation_burn as float64) as total_gas_cost
     from `lily-data.lily.derived_gas_outputs`
     where height > 4000000
 ),

@@ -47,7 +47,7 @@ with sector_msgs as (
 gas as (
     select
         cid,
-        (base_fee_burn + over_estimation_burn) / 1e18 as fee_fil
+        (cast(base_fee_burn as float64) + cast(over_estimation_burn as float64)) / 1e18 as fee_fil
     from `lily-data.lily.derived_gas_outputs`
     where height > 4000000
 )
