@@ -9,6 +9,7 @@ import smallBatchCount from "../../public/small_batch_count.json";
 import filReturnPerSector from "../../public/fil_return_per_sector.json";
 import dailyFeeBurn from "../../public/daily_fee_burn.json";
 import sectorLifetimeCost from "../../public/sector_lifetime_cost.json";
+import sectorDailyFeeCost from "../../public/sector_daily_fee_cost.json";
 import baseFeePercentiles from "../../public/base_fee_percentiles.json";
 import gasUtilization from "../../public/gas_utilization.json";
 import burnComposition from "../../public/burn_composition.json";
@@ -289,7 +290,15 @@ import renewalRate from "../../public/renewal_rate.json";
 					x="date"
 					y="avg_sector_lifetime_cost_nanofil"
 					label="Avg Per-Sector Lifetime Cost (Gas)"
-					subtitle="Onboarding gas cost per sector; excludes DailyFee until lily exposes nv25 SectorOnChainInfo"
+					subtitle="Onboarding gas cost only (pre- and post-nv25). See DailyFee chart below for the nv25+ recurring fee component."
+					yLabel="nanoFIL"
+				/>
+				<LineChart
+					data={sectorDailyFeeCost}
+					x="date"
+					y="avg_daily_fee_lifetime_cost_nanofil"
+					label="Avg Per-Sector Projected DailyFee Cost (nv25+)"
+					subtitle="Post-nv25 only. Extrapolated from daily_fee × declared sector lifetime; actual cost depends on early termination or extension. Source: miner_sector_infos_v7"
 					yLabel="nanoFIL"
 				/>
 
