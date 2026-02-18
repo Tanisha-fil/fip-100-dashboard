@@ -26,8 +26,9 @@ with daily as (
 
 select
     date,
-    percentile_cont(base_fee, 0.5) over (partition by date) as base_fee_p50_nanofil,
-    percentile_cont(base_fee, 0.95) over (partition by date) as base_fee_p95_nanofil
+    -- parent_base_fee is stored in attoFIL/gas; divide by 1e9 to convert to nanoFIL/gas
+    percentile_cont(base_fee, 0.5) over (partition by date) / 1e9 as base_fee_p50_nanofil,
+    percentile_cont(base_fee, 0.95) over (partition by date) / 1e9 as base_fee_p95_nanofil
 from daily
 qualify row_number() over (partition by date order by base_fee) = 1
 order by date desc

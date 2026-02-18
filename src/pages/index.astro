@@ -245,15 +245,16 @@ import renewalRate from "../../public/renewal_rate.json";
 					data={precommitSectorBatchSize}
 					x="date"
 					y="messages"
-					label="PreCommitSectorBatch2 proof aggregation messages"
+					label="PreCommitSectorBatch2 messages per day"
 					subtitle="Source: PreCommitSectorBatch2 messages"
 					yLabel="Messages"
 				/>
-				<LineChart
+				<MultiLineChart
 					data={gasPerSectorByPath}
 					x="date"
-					y="PreCommitSectorBatch2"
-					label="Avg Gas per Sector (PreCommitSectorBatch2)"
+					ys={["PreCommitSectorBatch2", "ProveCommitSectors3", "ProveCommitAggregate", "ProveReplicaUpdates3"]}
+					labels={["PreCommitSectorBatch2", "ProveCommitSectors3", "ProveCommitAggregate", "ProveReplicaUpdates3"]}
+					title="Avg Gas per Sector by Onboarding Path"
 					subtitle="Source: derived_gas_outputs joined with parsed_messages"
 					yLabel="nanoFIL"
 				/>
@@ -279,18 +280,18 @@ import renewalRate from "../../public/renewal_rate.json";
 				<MultiLineChart
 					data={dailyFeeBurn}
 					x="date"
-					ys={["total_fee_burn_fil", "sector_fee_burn_fil"]}
-					labels={["Total Fee Burn", "Sector Fee Burn"]}
+					ys={["total_fee_burn_fil", "sector_onboarding_gas_fil"]}
+					labels={["Total Gas Burn", "Sector Onboarding Gas Burn"]}
 					title="Daily Gas Fee Burn"
-					subtitle="Source: derived_gas_outputs"
+					subtitle="Gas burn from all messages vs sector onboarding messages only. Note: the FIP-100 DailyFee is deducted from vesting rewards by the cron actor and is not captured here. Source: derived_gas_outputs"
 					yLabel="FIL"
 				/>
 				<LineChart
 					data={sectorLifetimeCost}
 					x="date"
 					y="avg_sector_lifetime_cost_nanofil"
-					label="Avg Per-Sector Lifetime Cost (Gas)"
-					subtitle="Onboarding gas cost only (pre- and post-nv25). See DailyFee chart below for the nv25+ recurring fee component."
+					label="Avg Per-Sector Onboarding Gas Cost (PreCommit + ProveCommit)"
+					subtitle="Sum of avg PreCommitSectorBatch2 + ProveCommitSectors3 gas cost per sector per day. Gas-only component; excludes the FIP-100 DailyFee (see chart below). Source: derived_gas_outputs"
 					yLabel="nanoFIL"
 				/>
 				<LineChart
@@ -327,10 +328,10 @@ import renewalRate from "../../public/renewal_rate.json";
 				<MultiLineChart
 					data={burnComposition}
 					x="date"
-					ys={["penalty_burn_fil", "sector_fee_burn_fil", "other_burn_fil"]}
-					labels={["Penalty Burn", "Sector Fee Burn", "Other Burn"]}
-					title="Daily Burn Composition"
-					subtitle="Source: derived_gas_outputs"
+					ys={["dispute_termination_gas_fil", "sector_onboarding_gas_fil", "other_burn_fil"]}
+					labels={["Dispute/Termination Gas", "Sector Onboarding Gas", "Other Gas"]}
+					title="Daily Gas Burn Composition"
+					subtitle="Gas costs by message category. Dispute/Termination = DisputeWindowedPoSt + TerminateSectors gas only (not the FIL slash amounts). Source: derived_gas_outputs"
 					yLabel="FIL"
 				/>
 				<MultiLineChart
@@ -339,7 +340,7 @@ import renewalRate from "../../public/renewal_rate.json";
 					ys={["circulating_fil", "burnt_fil"]}
 					labels={["Circulating FIL", "Burnt FIL"]}
 					title="Circulating Supply vs Cumulative Burn"
-					subtitle="Source: chain_economics"
+					subtitle="Absolute FIL values. Source: chain_economics"
 					yLabel="FIL"
 				/>
 
@@ -351,7 +352,7 @@ import renewalRate from "../../public/renewal_rate.json";
 					ys={["extensions_per_day", "baseline_rolling_30d"]}
 					labels={["Extensions / Day", "30-Day Rolling Avg"]}
 					title="Sector Extensions per Day"
-					subtitle="Source: ExtendSectorExpiration + ExtendSectorExpiration2 messages"
+					subtitle="Count of individual sectors extended per day (one event per sector, not per message). Source: miner_sector_events SECTOR_EXTENDED"
 					yLabel="Extensions"
 				/>
 				<MultiLineChart
@@ -360,7 +361,7 @@ import renewalRate from "../../public/renewal_rate.json";
 					ys={["expired_count", "extended_count"]}
 					labels={["Expired", "Extended"]}
 					title="Sector Expiry vs Extension Count"
-					subtitle="Source: sector_events"
+					subtitle="Source: miner_sector_events"
 					yLabel="Sectors"
 				/>
 				<LineChart

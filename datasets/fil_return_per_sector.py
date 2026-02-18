@@ -28,17 +28,19 @@ with daily_rewards as (
 daily_rewards_delta as (
     select
         date,
-        cumulative_mined_reward - lag(cumulative_mined_reward) over (order by date) as daily_reward_fil
+        -- total_mined_reward is in attoFIL; divide by 1e18 to get FIL
+        (cumulative_mined_reward - lag(cumulative_mined_reward) over (order by date)) / 1e18 as daily_reward_fil
     from daily_rewards
 ),
 
 daily_sectors as (
     select
         datetime_trunc(timestamp_seconds(((height * 30) + 1598306400)), day) as date,
+        -- count SECTOR_ADDED events for actual new sectors onboarded each day
         count(*) as sectors_added
-    from `lily-data.lily.power_actor_claims`
+    from `lily-data.lily.miner_sector_events`
     where height > 4000000
-      and raw_byte_power > 0
+      and event = 'SECTOR_ADDED'
     group by 1
 )
 

@@ -28,7 +28,12 @@ with gas as (
 
 select
     date,
-    sum(case when method = 'ApplyRewards' then fee_fil else 0 end) as penalty_burn_fil,
+    -- Gas cost of dispute and termination messages (not the FIL slash amount itself)
+    sum(case
+        when method in ('DisputeWindowedPoSt', 'TerminateSectors')
+        then fee_fil else 0
+    end) as dispute_termination_gas_fil,
+    -- Gas cost of sector onboarding messages
     sum(case
         when method in (
             'PreCommitSectorBatch2',
@@ -37,10 +42,11 @@ select
             'ProveReplicaUpdates3',
             'PreCommitSector'
         ) then fee_fil else 0
-    end) as sector_fee_burn_fil,
+    end) as sector_onboarding_gas_fil,
     sum(case
         when method not in (
-            'ApplyRewards',
+            'DisputeWindowedPoSt',
+            'TerminateSectors',
             'PreCommitSectorBatch2',
             'ProveCommitSectors3',
             'ProveCommitAggregate',

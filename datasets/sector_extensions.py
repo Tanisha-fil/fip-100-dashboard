@@ -16,13 +16,16 @@ creds = service_account.Credentials.from_service_account_info(info)
 client = bigquery.Client(credentials=creds, project=info["project_id"])
 
 sql = """
+-- Use miner_sector_events to count individual sector extensions, not messages.
+-- A single ExtendSectorExpiration message can extend hundreds of sectors;
+-- SECTOR_EXTENDED events give one row per sector.
 with daily as (
     select
         datetime_trunc(timestamp_seconds(((height * 30) + 1598306400)), day) as date,
         count(*) as extensions_per_day
-    from `lily-data.lily.parsed_messages`
+    from `lily-data.lily.miner_sector_events`
     where height > 4000000
-      and method in ('ExtendSectorExpiration', 'ExtendSectorExpiration2')
+      and event = 'SECTOR_EXTENDED'
     group by 1
 )
 

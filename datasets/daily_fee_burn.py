@@ -15,9 +15,8 @@ info = json.loads(creds_json)
 creds = service_account.Credentials.from_service_account_info(info)
 client = bigquery.Client(credentials=creds, project=info["project_id"])
 
-# nv25 height ~= (2025-04-07 - 2020-08-24) * 2880 epochs/day
-# 2020-08-24 00:00 UTC = epoch 0 (genesis), but offset is 1598306400
-# 2025-04-07 = approx height 4360320
+# nv25 ("Teep") activation epoch ≈ 4878840 (~2025-04-14 UTC)
+# Formula: (date - 2020-08-24T22:00:00Z).total_seconds() / 30
 sql = """
 with gas as (
     select
@@ -32,6 +31,8 @@ with gas as (
 select
     date,
     sum(fee_fil) as total_fee_burn_fil,
+    -- Gas burn from sector onboarding messages only (not the FIP-100 DailyFee,
+    -- which is deducted from vesting rewards by the cron actor, not gas)
     sum(case
         when method in (
             'PreCommitSectorBatch2',
@@ -41,7 +42,7 @@ select
             'PreCommitSector'
         ) then fee_fil
         else 0
-    end) as sector_fee_burn_fil
+    end) as sector_onboarding_gas_fil
 from gas
 group by date
 order by date desc
