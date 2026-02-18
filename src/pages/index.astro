@@ -257,7 +257,7 @@ import renewalRate from "../../public/renewal_rate.json";
 					ys={["avg_aggregate_size", "median_aggregate_size"]}
 					labels={["Mean proof-aggregation size", "Median proof-aggregation size"]}
 					title="ProveCommitAggregate Size (Mean & Median)"
-					subtitle="Number of proofs per ProveCommitAggregate message. Source: parsed_messages"
+					subtitle="ProveCommitAggregate is rarely used (~30 days of data); most miners use ProveCommitSectors3 instead. Source: parsed_messages"
 					yLabel="Sectors"
 				/>
 				<MultiLineChart
@@ -266,7 +266,7 @@ import renewalRate from "../../public/renewal_rate.json";
 					ys={["PreCommitSectorBatch2", "ProveCommitSectors3", "ProveCommitAggregate", "ProveReplicaUpdates3"]}
 					labels={["PreCommitSectorBatch2", "ProveCommitSectors3", "ProveCommitAggregate", "ProveReplicaUpdates3"]}
 					title="Avg Gas per Sector by Onboarding Path"
-					subtitle="Source: derived_gas_outputs joined with parsed_messages"
+					subtitle="Only PreCommitSectorBatch2 has sufficient data in Lily; ProveCommitSectors3/Aggregate/ReplicaUpdates3 columns are sparse or empty. Source: derived_gas_outputs joined with parsed_messages"
 					yLabel="nanoFIL"
 				/>
 				<LineChart

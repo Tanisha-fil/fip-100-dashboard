@@ -229,9 +229,18 @@ const titleId = `${anchorId}-title`;
               beginAtZero: true,
               grace: "5%",
               ticks: {
-                precision: 0,
                 color: "#94a3b8",
                 font: { size: 11 },
+                callback: (value: number | string) => {
+                  const v = Number(value);
+                  if (!Number.isFinite(v)) return "";
+                  if (v === 0) return "0";
+                  const abs = Math.abs(v);
+                  if (abs >= 10000) return v.toLocaleString(undefined, { maximumFractionDigits: 0 });
+                  if (abs >= 1) return +v.toPrecision(4) + "";
+                  if (abs >= 0.0001) return +v.toPrecision(3) + "";
+                  return v.toExponential(2);
+                },
               },
               border: { display: false },
               grid: { color: "rgba(15, 23, 42, 0.06)" },
