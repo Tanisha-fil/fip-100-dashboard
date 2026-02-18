@@ -73,14 +73,15 @@ import renewalRate from "../../public/renewal_rate.json";
 				gap: 2.5rem;
 			}
 
-			.page-header {
-				display: grid;
-				gap: 0.25rem 1rem;
-				grid-template-columns: minmax(0, 1fr) auto;
-				grid-template-areas:
-					". link"
-					"title title"
-					"subtitle subtitle";
+				.page-header {
+					display: grid;
+					gap: 0.25rem 1rem;
+					grid-template-columns: minmax(0, 1fr) auto;
+					grid-template-areas:
+						". link"
+						"title title"
+						"subtitle subtitle"
+						"legend legend";
 				align-items: start;
 				background: #ffffff;
 				border: 1px solid rgba(15, 23, 42, 0.08);
@@ -116,8 +117,8 @@ import renewalRate from "../../public/renewal_rate.json";
 				}
 
 				.timeline-legend {
-					grid-area: subtitle;
-					margin-top: 0.35rem;
+					grid-area: legend;
+					margin: 0;
 					display: flex;
 					flex-wrap: wrap;
 					gap: 0.5rem 1rem;
