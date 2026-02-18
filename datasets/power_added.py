@@ -41,11 +41,17 @@ daily_activity as (
     where rn = 1
 ),
 date_spine  as (select distinct date    from daily_activity),
-miner_spine as (select distinct miner_id from daily_activity),
--- All date × miner combinations
+miner_bounds as (
+    select miner_id, min(date) as first_seen_date
+    from daily_activity
+    group by 1
+),
+-- All date × miner combinations from each miner's first-seen day onward
 all_combos as (
     select d.date, m.miner_id
-    from date_spine d cross join miner_spine m
+    from date_spine d
+    join miner_bounds m
+      on d.date >= m.first_seen_date
 ),
 -- Fill-forward: carry each miner's last known power through subsequent days
 filled as (
@@ -63,18 +69,33 @@ filled as (
     from all_combos a
     left join daily_activity da on a.date = da.date and a.miner_id = da.miner_id
 ),
+-- First observation per miner has no prior baseline, so skip it in delta sums.
+deltas as (
+    select
+        date,
+        miner_id,
+        case
+            when lag(raw_byte_power) over (partition by miner_id order by date) is null then null
+            else raw_byte_power - lag(raw_byte_power) over (partition by miner_id order by date)
+        end as raw_delta,
+        case
+            when lag(quality_adj_power) over (partition by miner_id order by date) is null then null
+            else quality_adj_power - lag(quality_adj_power) over (partition by miner_id order by date)
+        end as qap_delta
+    from filled
+),
 network_daily as (
     select
         date,
-        sum(coalesce(raw_byte_power,    0)) as total_raw,
-        sum(coalesce(quality_adj_power, 0)) as total_qap
-    from filled
+        sum(coalesce(raw_delta, 0)) as raw_power_added_bytes,
+        sum(coalesce(qap_delta, 0)) as qap_power_added_bytes
+    from deltas
     group by 1
 )
 select
     date,
-    (total_raw - lag(total_raw) over (order by date)) / pow(1024, 5) as raw_power_added,
-    (total_qap - lag(total_qap) over (order by date)) / pow(1024, 5) as quality_adjusted_power_added
+    raw_power_added_bytes / pow(1024, 5) as raw_power_added,
+    qap_power_added_bytes / pow(1024, 5) as quality_adjusted_power_added
 from network_daily
 order by date desc
 """

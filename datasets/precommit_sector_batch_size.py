@@ -15,7 +15,45 @@ info = json.loads(creds_json)
 creds = service_account.Credentials.from_service_account_info(info)
 client = bigquery.Client(credentials=creds, project=info["project_id"])
 
-sql = """
+cid_col_query = """
+select column_name
+from `lily-data.lily.INFORMATION_SCHEMA.COLUMNS`
+where table_name = 'miner_sector_events'
+"""
+cid_columns = {row.column_name for row in client.query(cid_col_query).result()}
+event_cid_col = next(
+    (c for c in ("message_cid", "msg_cid", "cid", "message") if c in cid_columns),
+    None,
+)
+
+event_cte = ""
+event_join = ""
+event_agg_expr = "a.param_agg_size"
+
+if event_cid_col:
+    event_cte = f""",
+aggregate_event_sizes as (
+    select
+        datetime_trunc(timestamp_seconds(((mse.height * 30) + 1598306400)), day) as date,
+        pm.cid,
+        count(*) as event_agg_size
+    from `lily-data.lily.miner_sector_events` mse
+    join `lily-data.lily.parsed_messages` pm
+      on pm.cid = mse.{event_cid_col}
+    where mse.height > 4000000
+      and mse.event = 'SECTOR_ADDED'
+      and pm.height > 4000000
+      and pm.method = 'ProveCommitAggregate'
+    group by 1, 2
+)"""
+    event_join = """
+left join aggregate_event_sizes aes
+  on a.date = aes.date
+ and a.cid = aes.cid
+"""
+    event_agg_expr = "coalesce(a.param_agg_size, aes.event_agg_size)"
+
+sql = f"""
 with precommit as (
     select
         datetime_trunc(timestamp_seconds(((height * 30) + 1598306400)), day) as date,
@@ -24,13 +62,27 @@ with precommit as (
     where height > 4000000
       and method = 'PreCommitSectorBatch2'
 ),
-aggregate as (
+aggregate_base as (
     select
         datetime_trunc(timestamp_seconds(((height * 30) + 1598306400)), day) as date,
-        cast(json_extract_scalar(params, '$.AggregateSize') as int64) as agg_size
+        cid,
+        coalesce(
+            cast(json_extract_scalar(params, '$.AggregateSize') as int64),
+            cast(json_extract_scalar(params, '$.AggregateSectorCount') as int64),
+            array_length(json_extract_array(params, '$.SectorNumbers')),
+            array_length(json_extract_array(params, '$.SectorProofs')),
+            array_length(json_extract_array(params, '$.Sectors'))
+        ) as param_agg_size
     from `lily-data.lily.parsed_messages`
     where height > 4000000
       and method = 'ProveCommitAggregate'
+){event_cte},
+aggregate as (
+    select
+        a.date,
+        {event_agg_expr} as agg_size
+    from aggregate_base a
+    {event_join}
 ),
 precommit_daily as (
     select
@@ -41,11 +93,18 @@ precommit_daily as (
     from precommit
     group by date
 ),
-aggregate_daily as (
+aggregate_sized_daily as (
     select
         date,
         avg(agg_size) as avg_aggregate_size,
-        approx_quantiles(agg_size, 2)[OFFSET(1)] as median_aggregate_size,
+        approx_quantiles(agg_size, 2)[OFFSET(1)] as median_aggregate_size
+    from aggregate
+    where agg_size is not null and agg_size > 0
+    group by date
+),
+aggregate_messages_daily as (
+    select
+        date,
         count(*) as aggregate_messages
     from aggregate
     group by date
@@ -57,9 +116,10 @@ select
     p.messages,
     a.avg_aggregate_size,
     a.median_aggregate_size,
-    a.aggregate_messages
+    m.aggregate_messages
 from precommit_daily p
-left join aggregate_daily a on p.date = a.date
+left join aggregate_sized_daily a on p.date = a.date
+left join aggregate_messages_daily m on p.date = m.date
 order by p.date desc
 """
 

@@ -15,13 +15,53 @@ info = json.loads(creds_json)
 creds = service_account.Credentials.from_service_account_info(info)
 client = bigquery.Client(credentials=creds, project=info["project_id"])
 
+cid_col_query = """
+select column_name
+from `lily-data.lily.INFORMATION_SCHEMA.COLUMNS`
+where table_name = 'miner_sector_events'
+"""
+cid_columns = {row.column_name for row in client.query(cid_col_query).result()}
+event_cid_col = next(
+    (c for c in ("message_cid", "msg_cid", "cid", "message") if c in cid_columns),
+    None,
+)
+
+event_cte = ""
+event_join = ""
+sector_count_expr = "s.param_sector_count"
+
+if event_cid_col:
+    event_cte = f""",
+event_sector_counts as (
+    select
+        datetime_trunc(timestamp_seconds(((mse.height * 30) + 1598306400)), day) as date,
+        pm.cid,
+        pm.method,
+        count(*) as event_sector_count
+    from `lily-data.lily.miner_sector_events` mse
+    join `lily-data.lily.parsed_messages` pm
+      on pm.cid = mse.{event_cid_col}
+    where mse.height > 4000000
+      and mse.event = 'SECTOR_ADDED'
+      and pm.height > 4000000
+      and pm.method = 'ProveCommitSectors3'
+    group by 1, 2, 3
+)"""
+    event_join = """
+left join event_sector_counts esc
+  on s.date = esc.date
+ and s.cid = esc.cid
+ and s.method = esc.method
+"""
+    sector_count_expr = "coalesce(s.param_sector_count, esc.event_sector_count)"
+
 # Per-sector onboarding gas cost = avg PreCommitSectorBatch2 gas/sector
 #                                 + avg ProveCommitSectors3 gas/sector
 # Split by SP archetype proxied by batch size:
 #   large SP  >= 10 sectors/batch
 #   medium SP  4-9 sectors/batch
 #   small SP   1-3 sectors/batch
-sql = """
+sql = f"""
 with sector_msgs as (
     select
         datetime_trunc(timestamp_seconds(((height * 30) + 1598306400)), day) as date,
@@ -31,12 +71,25 @@ with sector_msgs as (
             when pm.method = 'PreCommitSectorBatch2'
                 then array_length(json_extract_array(pm.params, '$.Sectors'))
             when pm.method = 'ProveCommitSectors3'
-                then array_length(json_extract_array(pm.params, '$.Sectors'))
+                then coalesce(
+                    array_length(json_extract_array(pm.params, '$.SectorNumbers')),
+                    array_length(json_extract_array(pm.params, '$.SectorProofs')),
+                    array_length(json_extract_array(pm.params, '$.Sectors'))
+                )
             else 1
-        end as sector_count
+        end as param_sector_count
     from `lily-data.lily.parsed_messages` pm
     where pm.height > 4000000
       and pm.method in ('PreCommitSectorBatch2', 'ProveCommitSectors3')
+){event_cte},
+combined as (
+    select
+        s.date,
+        s.cid,
+        s.method,
+        {sector_count_expr} as sector_count
+    from sector_msgs s
+    {event_join}
 ),
 gas as (
     select
@@ -55,7 +108,7 @@ by_method_archetype as (
             else 'small_sp'
         end as sp_archetype,
         avg(safe_divide(g.fee_nanofil, s.sector_count)) as avg_gas_per_sector
-    from sector_msgs s
+    from combined s
     join gas g on s.cid = g.cid
     where s.sector_count > 0
     group by s.date, s.method, sp_archetype

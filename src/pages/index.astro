@@ -106,14 +106,51 @@ import renewalRate from "../../public/renewal_rate.json";
 				grid-area: title;
 			}
 
-			.subtitle {
-				margin: 0;
-				font-size: clamp(1rem, 3vw, 1.2rem);
-				color: var(--muted);
-				max-inline-size: 46rem;
-				text-wrap: pretty;
-				grid-area: subtitle;
-			}
+				.subtitle {
+					margin: 0;
+					font-size: clamp(1rem, 3vw, 1.2rem);
+					color: var(--muted);
+					max-inline-size: 46rem;
+					text-wrap: pretty;
+					grid-area: subtitle;
+				}
+
+				.timeline-legend {
+					grid-area: subtitle;
+					margin-top: 0.35rem;
+					display: flex;
+					flex-wrap: wrap;
+					gap: 0.5rem 1rem;
+					font-size: 0.75rem;
+					color: var(--muted);
+				}
+
+				.timeline-legend span {
+					display: inline-flex;
+					align-items: center;
+					gap: 0.35rem;
+				}
+
+				.timeline-legend span::before {
+					content: "";
+					display: inline-block;
+					inline-size: 1.1rem;
+					block-size: 0.35rem;
+					border-radius: 999px;
+				}
+
+				.timeline-legend .legend-nv25::before {
+					background: #d82124;
+				}
+
+				.timeline-legend .legend-nv26::before {
+					background: #0f766e;
+				}
+
+				.timeline-legend .legend-grace::before {
+					background: rgba(216, 33, 36, 0.18);
+					border: 1px solid rgba(216, 33, 36, 0.35);
+				}
 
 			.charts {
 				display: flex;
@@ -200,10 +237,15 @@ import renewalRate from "../../public/renewal_rate.json";
 						>[timelines]</a
 					>
 				</nav>
-				<p class="subtitle">
-					Metrics to track FIP 100 real-world network behavior
-				</p>
-			</header>
+					<p class="subtitle">
+						Metrics to track FIP 100 real-world network behavior
+					</p>
+					<p class="timeline-legend" aria-label="Upgrade timeline legend">
+						<span class="legend-nv25">nv25: 2025-04-14</span>
+						<span class="legend-nv26">nv26 / +90d: 2025-07-13</span>
+						<span class="legend-grace">Shaded band: grace window</span>
+					</p>
+				</header>
 
 			<section class="charts" aria-label="Charts">
 
@@ -251,15 +293,16 @@ import renewalRate from "../../public/renewal_rate.json";
 					subtitle="PreCommitSectorBatch2 = sector batching; ProveCommitAggregate = proof aggregation (distinct mechanisms). Source: parsed_messages"
 					yLabel="Messages"
 				/>
-				<MultiLineChart
-					data={precommitSectorBatchSize}
-					x="date"
-					ys={["avg_aggregate_size", "median_aggregate_size"]}
-					labels={["Mean proof-aggregation size", "Median proof-aggregation size"]}
-					title="ProveCommitAggregate Size (Mean & Median)"
-					subtitle="ProveCommitAggregate is rarely used (~30 days of data); most miners use ProveCommitSectors3 instead. Source: parsed_messages"
-					yLabel="Sectors"
-				/>
+					<MultiLineChart
+						data={precommitSectorBatchSize}
+						x="date"
+						ys={["avg_aggregate_size", "median_aggregate_size"]}
+						labels={["Mean proof-aggregation size", "Median proof-aggregation size"]}
+						title="ProveCommitAggregate Size (Mean & Median)"
+						subtitle="ProveCommitAggregate is rarely used (~30 days of data); most miners use ProveCommitSectors3 instead. Source: parsed_messages"
+						yLabel="Sectors"
+						noDataMessage="ProveCommitAggregate messages are present, but aggregate-size values are unavailable in current source data. See 'Daily Batch & Aggregate Message Count' above for usage."
+					/>
 				<MultiLineChart
 					data={gasPerSectorByPath}
 					x="date"

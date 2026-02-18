@@ -1,6 +1,6 @@
 ---
 type LineChartProps = {
-  data: Array<Record<string, string | number>>;
+  data: Array<Record<string, string | number | null>>;
   x: string;
   y: string;
   label: string;
@@ -12,14 +12,23 @@ const { data, x, y, label, subtitle, yLabel } = Astro.props as LineChartProps;
 
 const points = data
   .map((row) => {
-    const value = String(row[x]);
+    const xValue = row[x];
+    const yValue = row[y];
+    if (xValue === null || xValue === undefined || xValue === "") return null;
+    if (yValue === null || yValue === undefined || yValue === "") return null;
+
+    const value = String(xValue);
+    const numericY = Number(yValue);
     return {
       x: new Date(value).getTime(),
-      y: Number(row[y]),
+      y: numericY,
       label: value,
     };
   })
-  .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y))
+  .filter(
+    (point): point is { x: number; y: number; label: string } =>
+      point !== null && Number.isFinite(point.x) && Number.isFinite(point.y),
+  )
   .sort((a, b) => a.x - b.x);
 
 const payload = JSON.stringify(points);
@@ -118,6 +127,8 @@ const titleId = `${anchorId}-title`;
   document
     .querySelectorAll<HTMLCanvasElement>("canvas[data-line-chart]")
     .forEach((canvas) => {
+      const NV25_DATE = "2025-04-14";
+      const NV26_DATE = "2025-07-13";
       const dataset = canvas.dataset.lineChart;
       if (!dataset) return;
 
@@ -167,10 +178,17 @@ const titleId = `${anchorId}-title`;
             },
             annotation: {
               annotations: {
+                gracePeriodWindow: {
+                  type: "box",
+                  xMin: NV25_DATE,
+                  xMax: NV26_DATE,
+                  backgroundColor: "rgba(216, 33, 36, 0.06)",
+                  borderWidth: 0,
+                },
                 networkUpgradeV25: {
                   type: "line",
-                  xMin: "2025-04-14",
-                  xMax: "2025-04-14",
+                  xMin: NV25_DATE,
+                  xMax: NV25_DATE,
                   borderColor: "#d82124",
                   borderWidth: 1,
                   borderDash: [6, 6],
@@ -184,6 +202,26 @@ const titleId = `${anchorId}-title`;
                     padding: { top: 2, bottom: 2, left: 4, right: 4 },
                     position: "start",
                     yAdjust: -12,
+                    borderRadius: 3,
+                  },
+                },
+                networkUpgradeV26: {
+                  type: "line",
+                  xMin: NV26_DATE,
+                  xMax: NV26_DATE,
+                  borderColor: "#0f766e",
+                  borderWidth: 1,
+                  borderDash: [6, 6],
+                  label: {
+                    display: true,
+                    content: "nv26 / +90d",
+                    rotation: 0,
+                    backgroundColor: "rgba(255,255,255,0.9)",
+                    color: "#0f766e",
+                    font: { size: 11, weight: 600 },
+                    padding: { top: 2, bottom: 2, left: 4, right: 4 },
+                    position: "start",
+                    yAdjust: 10,
                     borderRadius: 3,
                   },
                 },

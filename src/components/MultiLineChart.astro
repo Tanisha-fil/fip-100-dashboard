@@ -1,28 +1,38 @@
 ---
 type MultiLineChartProps = {
-  data: Array<Record<string, string | number>>;
+  data: Array<Record<string, string | number | null>>;
   x: string;
   ys: string[];
   labels: string[];
   title: string;
   subtitle?: string;
   yLabel?: string;
+  noDataMessage?: string;
 };
 
-const { data, x, ys, labels, title, subtitle, yLabel } =
+const { data, x, ys, labels, title, subtitle, yLabel, noDataMessage } =
   Astro.props as MultiLineChartProps;
 
 const datasets = ys.map((y, i) => {
   const points = data
     .map((row) => {
-      const value = String(row[x]);
+      const xValue = row[x];
+      const yValue = row[y];
+      if (xValue === null || xValue === undefined || xValue === "") return null;
+      if (yValue === null || yValue === undefined || yValue === "") return null;
+
+      const value = String(xValue);
+      const numericY = Number(yValue);
       return {
         x: new Date(value).getTime(),
-        y: Number(row[y]),
+        y: numericY,
         label: value,
       };
     })
-    .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y))
+    .filter(
+      (point): point is { x: number; y: number; label: string } =>
+        point !== null && Number.isFinite(point.x) && Number.isFinite(point.y),
+    )
     .sort((a, b) => a.x - b.x);
   return { label: labels[i] ?? y, points };
 });
@@ -30,6 +40,7 @@ const datasets = ys.map((y, i) => {
 const payload = JSON.stringify(datasets);
 const anchorId = title.trim().toLowerCase().replace(/\s+/g, "-");
 const titleId = `${anchorId}-title`;
+const hasData = datasets.some((dataset) => dataset.points.length > 0);
 ---
 
 <section class="line-chart" id={anchorId} aria-labelledby={titleId}>
@@ -41,12 +52,19 @@ const titleId = `${anchorId}-title`;
       {subtitle ? <p class="chart-subtitle">{subtitle}</p> : null}
     </div>
     <figure class="chart-figure">
-      <canvas
-        role="img"
-        aria-label={title}
-        data-multi-line-chart={payload}
-        data-y-label={yLabel ?? ""}
-      ></canvas>
+      {hasData ? (
+        <canvas
+          role="img"
+          aria-label={title}
+          data-multi-line-chart={payload}
+          data-y-label={yLabel ?? ""}
+        ></canvas>
+      ) : (
+        <p class="chart-no-data">
+          {noDataMessage ??
+            "No plottable data is available for this metric in the current source window."}
+        </p>
+      )}
     </figure>
   </div>
 </section>
@@ -107,6 +125,14 @@ const titleId = `${anchorId}-title`;
     inline-size: 100%;
     aspect-ratio: 3 / 1;
   }
+
+  .chart-no-data {
+    margin: 0;
+    padding: 0.5rem 0 0;
+    color: var(--muted, #475569);
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
 </style>
 
 <script>
@@ -132,6 +158,8 @@ const titleId = `${anchorId}-title`;
   document
     .querySelectorAll<HTMLCanvasElement>("canvas[data-multi-line-chart]")
     .forEach((canvas) => {
+      const NV25_DATE = "2025-04-14";
+      const NV26_DATE = "2025-07-13";
       const raw = canvas.dataset.multiLineChart;
       if (!raw) return;
 
@@ -186,10 +214,17 @@ const titleId = `${anchorId}-title`;
             },
             annotation: {
               annotations: {
+                gracePeriodWindow: {
+                  type: "box",
+                  xMin: NV25_DATE,
+                  xMax: NV26_DATE,
+                  backgroundColor: "rgba(216, 33, 36, 0.06)",
+                  borderWidth: 0,
+                },
                 networkUpgradeV25: {
                   type: "line",
-                  xMin: "2025-04-14",
-                  xMax: "2025-04-14",
+                  xMin: NV25_DATE,
+                  xMax: NV25_DATE,
                   borderColor: "#d82124",
                   borderWidth: 1,
                   borderDash: [6, 6],
@@ -203,6 +238,26 @@ const titleId = `${anchorId}-title`;
                     padding: { top: 2, bottom: 2, left: 4, right: 4 },
                     position: "start",
                     yAdjust: -12,
+                    borderRadius: 3,
+                  },
+                },
+                networkUpgradeV26: {
+                  type: "line",
+                  xMin: NV26_DATE,
+                  xMax: NV26_DATE,
+                  borderColor: "#0f766e",
+                  borderWidth: 1,
+                  borderDash: [6, 6],
+                  label: {
+                    display: true,
+                    content: "nv26 / +90d",
+                    rotation: 0,
+                    backgroundColor: "rgba(255,255,255,0.9)",
+                    color: "#0f766e",
+                    font: { size: 11, weight: 600 },
+                    padding: { top: 2, bottom: 2, left: 4, right: 4 },
+                    position: "start",
+                    yAdjust: 10,
                     borderRadius: 3,
                   },
                 },
