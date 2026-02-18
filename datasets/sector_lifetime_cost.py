@@ -17,9 +17,10 @@ client = bigquery.Client(credentials=creds, project=info["project_id"])
 
 # Per-sector onboarding gas cost = avg PreCommitSectorBatch2 gas/sector
 #                                 + avg ProveCommitSectors3 gas/sector
-# Summing the two averages approximates the total two-message cost per sector.
-# This is the gas-only component; post-nv25 the FIP-100 DailyFee adds a recurring
-# fee on top (see sector_daily_fee_cost.py).
+# Split by SP archetype proxied by batch size:
+#   large SP  >= 10 sectors/batch
+#   medium SP  4-9 sectors/batch
+#   small SP   1-3 sectors/batch
 sql = """
 with sector_msgs as (
     select
@@ -37,7 +38,6 @@ with sector_msgs as (
     where pm.height > 4000000
       and pm.method in ('PreCommitSectorBatch2', 'ProveCommitSectors3')
 ),
-
 gas as (
     select
         cid,
@@ -45,28 +45,39 @@ gas as (
     from `lily-data.lily.derived_gas_outputs`
     where height > 4000000
 ),
-
-by_method as (
+by_method_archetype as (
     select
         s.date,
         s.method,
+        case
+            when s.sector_count >= 10 then 'large_sp'
+            when s.sector_count >= 4  then 'medium_sp'
+            else 'small_sp'
+        end as sp_archetype,
         avg(safe_divide(g.fee_nanofil, s.sector_count)) as avg_gas_per_sector
     from sector_msgs s
     join gas g on s.cid = g.cid
     where s.sector_count > 0
-    group by s.date, s.method
+    group by s.date, s.method, sp_archetype
 )
-
 select
     date,
+    sp_archetype,
     sum(avg_gas_per_sector) as avg_sector_lifetime_cost_nanofil
-from by_method
-group by date
-order by date desc
+from by_method_archetype
+group by date, sp_archetype
+order by date desc, sp_archetype
 """
 
 data = client.query(sql).to_arrow(create_bqstorage_client=False)
 
 df = pl.DataFrame(data).with_columns(pl.col("date").dt.strftime("%Y-%m-%d"))
 
-df.write_json(f"public/{Path(__file__).stem}.json")
+pivoted = df.pivot(
+    values="avg_sector_lifetime_cost_nanofil",
+    index="date",
+    on="sp_archetype",
+    aggregate_function="mean",
+).sort("date", descending=True)
+
+pivoted.write_json(f"public/{Path(__file__).stem}.json")

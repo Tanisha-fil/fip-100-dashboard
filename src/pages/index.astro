@@ -233,21 +233,32 @@ import renewalRate from "../../public/renewal_rate.json";
 
 				<!-- ── Sector Onboarding Economics & Throughput ── -->
 				<h2 class="category-header">Sector Onboarding Economics &amp; Throughput</h2>
-				<LineChart
+				<MultiLineChart
 					data={precommitSectorBatchSize}
 					x="date"
-					y="avg_sectors_per_message"
-					label="PreCommitSectorBatch2 mean batch size"
+					ys={["avg_sectors_per_message", "median_sectors_per_message"]}
+					labels={["Mean batch size", "Median batch size"]}
+					title="PreCommitSectorBatch2 Batch Size (Mean & Median)"
 					subtitle="Source: PreCommitSectorBatch2 messages"
 					yLabel="Sectors"
 				/>
-				<LineChart
+				<MultiLineChart
 					data={precommitSectorBatchSize}
 					x="date"
-					y="messages"
-					label="PreCommitSectorBatch2 messages per day"
-					subtitle="Source: PreCommitSectorBatch2 messages"
+					ys={["messages", "aggregate_messages"]}
+					labels={["PreCommitSectorBatch2 messages", "ProveCommitAggregate messages"]}
+					title="Daily Batch & Aggregate Message Count"
+					subtitle="PreCommitSectorBatch2 = sector batching; ProveCommitAggregate = proof aggregation (distinct mechanisms). Source: parsed_messages"
 					yLabel="Messages"
+				/>
+				<MultiLineChart
+					data={precommitSectorBatchSize}
+					x="date"
+					ys={["avg_aggregate_size", "median_aggregate_size"]}
+					labels={["Mean proof-aggregation size", "Median proof-aggregation size"]}
+					title="ProveCommitAggregate Size (Mean & Median)"
+					subtitle="Number of proofs per ProveCommitAggregate message. Source: parsed_messages"
+					yLabel="Sectors"
 				/>
 				<MultiLineChart
 					data={gasPerSectorByPath}
@@ -286,12 +297,13 @@ import renewalRate from "../../public/renewal_rate.json";
 					subtitle="Gas burn from all messages vs sector onboarding messages only. Note: the FIP-100 DailyFee is deducted from vesting rewards by the cron actor and is not captured here. Source: derived_gas_outputs"
 					yLabel="FIL"
 				/>
-				<LineChart
+				<MultiLineChart
 					data={sectorLifetimeCost}
 					x="date"
-					y="avg_sector_lifetime_cost_nanofil"
-					label="Avg Per-Sector Onboarding Gas Cost (PreCommit + ProveCommit)"
-					subtitle="Sum of avg PreCommitSectorBatch2 + ProveCommitSectors3 gas cost per sector per day. Gas-only component; excludes the FIP-100 DailyFee (see chart below). Source: derived_gas_outputs"
+					ys={["large_sp", "medium_sp", "small_sp"]}
+					labels={["Large SP (>=10 sectors/batch)", "Medium SP (4-9 sectors/batch)", "Small SP (1-3 sectors/batch)"]}
+					title="Avg Per-Sector Onboarding Gas Cost by SP Archetype"
+					subtitle="PreCommit + ProveCommit gas cost per sector, split by batch size as SP archetype proxy. Gas-only; excludes FIP-100 DailyFee (see chart below). Source: derived_gas_outputs"
 					yLabel="nanoFIL"
 				/>
 				<LineChart
@@ -322,6 +334,14 @@ import renewalRate from "../../public/renewal_rate.json";
 					subtitle="sum(gas_used) / sum(gas_limit) per day"
 					yLabel="%"
 				/>
+				<LineChart
+					data={gasUtilization}
+					x="date"
+					y="theoretical_max_sectors_per_day"
+					label="Theoretical Max Sector Onboarding Rate"
+					subtitle="Network gas capacity (10B gas/tipset x 2880 tipsets/day) / avg gas used per PreCommitSectorBatch2 sector. Upper bound if all blockspace were used for onboarding."
+					yLabel="Sectors / day"
+				/>
 
 				<!-- ── Network Burn & Token-Economics ── -->
 				<h2 class="category-header">Network Burn &amp; Token-Economics</h2>
@@ -343,16 +363,25 @@ import renewalRate from "../../public/renewal_rate.json";
 					subtitle="Absolute FIL values. Source: chain_economics"
 					yLabel="FIL"
 				/>
+				<MultiLineChart
+					data={circulatingSupplyVsBurn}
+					x="date"
+					ys={["circulating_growth_pct", "daily_burn_rate_pct"]}
+					labels={["Circulating supply growth %", "Daily burn rate % of supply"]}
+					title="Circulating Supply Growth vs Fee Burn Rate (%)"
+					subtitle="Day-over-day % change in circulating supply vs daily new burn as % of circulating supply. Source: chain_economics"
+					yLabel="%"
+				/>
 
 				<!-- ── Grace-Period Behaviour ── -->
 				<h2 class="category-header">Grace-Period Behaviour</h2>
 				<MultiLineChart
 					data={sectorExtensions}
 					x="date"
-					ys={["extensions_per_day", "baseline_rolling_30d"]}
-					labels={["Extensions / Day", "30-Day Rolling Avg"]}
-					title="Sector Extensions per Day"
-					subtitle="Count of individual sectors extended per day (one event per sector, not per message). Source: miner_sector_events SECTOR_EXTENDED"
+					ys={["extensions_pre_grace", "extensions_during_grace", "extensions_post_grace", "baseline_rolling_30d"]}
+					labels={["Pre-grace", "During grace (nv25 to +90d)", "Post-grace", "30-Day Rolling Avg"]}
+					title="Sector Extensions per Day by Grace-Period Phase"
+					subtitle="nv25 ~2025-04-14; grace window ends ~2025-07-13. Individual SECTOR_EXTENDED events. Source: miner_sector_events"
 					yLabel="Extensions"
 				/>
 				<MultiLineChart
@@ -364,12 +393,13 @@ import renewalRate from "../../public/renewal_rate.json";
 					subtitle="Source: miner_sector_events"
 					yLabel="Sectors"
 				/>
-				<LineChart
+				<MultiLineChart
 					data={renewalRate}
 					x="date"
-					y="renewal_rate_pct"
-					label="Sector Renewal Rate"
-					subtitle="% of expiring sectors that get extended"
+					ys={["renewal_rate_pre_pct", "renewal_rate_during_pct", "renewal_rate_post_pct"]}
+					labels={["Renewal rate pre-grace", "Renewal rate during grace", "Renewal rate post-grace"]}
+					title="Sector Renewal Rate by Grace-Period Phase"
+					subtitle="% of expiring sectors that get extended, segmented by grace-period window. Source: miner_sector_events"
 					yLabel="%"
 				/>
 

@@ -16,24 +16,51 @@ creds = service_account.Credentials.from_service_account_info(info)
 client = bigquery.Client(credentials=creds, project=info["project_id"])
 
 sql = """
-with per_message as (
+with precommit as (
     select
         datetime_trunc(timestamp_seconds(((height * 30) + 1598306400)), day) as date,
-        array_length(
-            json_extract_array(params, '$.Sectors')
-        ) as sector_count
+        array_length(json_extract_array(params, '$.Sectors')) as sector_count
     from `lily-data.lily.parsed_messages`
     where height > 4000000
       and method = 'PreCommitSectorBatch2'
+),
+aggregate as (
+    select
+        datetime_trunc(timestamp_seconds(((height * 30) + 1598306400)), day) as date,
+        cast(json_extract_scalar(params, '$.AggregateSize') as int64) as agg_size
+    from `lily-data.lily.parsed_messages`
+    where height > 4000000
+      and method = 'ProveCommitAggregate'
+),
+precommit_daily as (
+    select
+        date,
+        avg(sector_count) as avg_sectors_per_message,
+        approx_quantiles(sector_count, 2)[OFFSET(1)] as median_sectors_per_message,
+        count(*) as messages
+    from precommit
+    group by date
+),
+aggregate_daily as (
+    select
+        date,
+        avg(agg_size) as avg_aggregate_size,
+        approx_quantiles(agg_size, 2)[OFFSET(1)] as median_aggregate_size,
+        count(*) as aggregate_messages
+    from aggregate
+    group by date
 )
-
 select
-    date,
-    avg(sector_count) as avg_sectors_per_message,
-    count(*) as messages
-from per_message
-group by date
-order by date desc
+    p.date,
+    p.avg_sectors_per_message,
+    p.median_sectors_per_message,
+    p.messages,
+    a.avg_aggregate_size,
+    a.median_aggregate_size,
+    a.aggregate_messages
+from precommit_daily p
+left join aggregate_daily a on p.date = a.date
+order by p.date desc
 """
 
 data = client.query(sql).to_arrow(create_bqstorage_client=False)
