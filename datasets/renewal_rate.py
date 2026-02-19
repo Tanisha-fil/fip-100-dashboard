@@ -63,6 +63,25 @@ order by 1 desc
 
 data = client.query(sql).to_arrow(create_bqstorage_client=False)
 
-df = pl.DataFrame(data).with_columns(pl.col("date").dt.strftime("%Y-%m-%d"))
+# Apply 7-day trailing rolling mean to the per-phase renewal rate columns to
+# smooth out days with very few expiry events (small denominators cause wild
+# 0%-100% oscillations, especially in recent data).
+df = (
+    pl.DataFrame(data)
+    .with_columns(pl.col("date").dt.strftime("%Y-%m-%d"))
+    .sort("date")
+    .with_columns([
+        pl.col("renewal_rate_pre_pct")
+            .rolling_mean(window_size=7, min_samples=1)
+            .alias("renewal_rate_pre_pct"),
+        pl.col("renewal_rate_during_pct")
+            .rolling_mean(window_size=7, min_samples=1)
+            .alias("renewal_rate_during_pct"),
+        pl.col("renewal_rate_post_pct")
+            .rolling_mean(window_size=7, min_samples=1)
+            .alias("renewal_rate_post_pct"),
+    ])
+    .sort("date", descending=True)
+)
 
 df.write_json(f"public/{Path(__file__).stem}.json")
