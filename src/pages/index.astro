@@ -295,14 +295,16 @@ const renewalRateSubtitleSuffix =
 					data={powerAdded}
 					x="date"
 					y="raw_power_added"
-					label="Raw Power Added"
+					label="Raw Power Added (7-day avg)"
+					subtitle="7-day rolling mean of daily raw byte power delta. Source: power_actor_claims"
 					yLabel="PiB"
 				/>
 				<LineChart
 					data={powerAdded}
 					x="date"
 					y="quality_adjusted_power_added"
-					label="Quality Adjusted Power Added"
+					label="Quality Adjusted Power Added (7-day avg)"
+					subtitle="7-day rolling mean of daily QAP delta. Source: power_actor_claims"
 					yLabel="PiB (QAP)"
 				/>
 				<LineChart
