@@ -254,6 +254,28 @@ const renewalRateSubtitleSuffix =
 			.header-links a:focus-visible {
 				color: var(--ink);
 			}
+
+			.nv25-callout {
+				background: #fff;
+				border: 1px solid rgba(216, 33, 36, 0.2);
+				border-left: 3px solid #d82124;
+				border-radius: 0.5rem;
+				padding: 1rem 1.25rem;
+				font-size: 0.78rem;
+				line-height: 1.6;
+				color: var(--muted);
+			}
+			.nv25-callout strong {
+				color: var(--ink);
+			}
+			.nv25-callout a {
+				color: var(--muted);
+				text-decoration: underline;
+				text-underline-offset: 2px;
+			}
+			.nv25-callout a:hover {
+				color: var(--ink);
+			}
 		</style>
 	</head>
 	<body>
@@ -317,6 +339,16 @@ const renewalRateSubtitleSuffix =
 
 				<!-- ── Sector Onboarding Economics & Throughput ── -->
 				<h2 class="category-header">Sector Onboarding Economics &amp; Throughput</h2>
+				<div class="nv25-callout">
+					<strong>nv25 (2025-04-14) — FIP-100 gas changes:</strong> Removed the batch
+					balancer fee and aggregate ProveCommit fee, making batching and proof
+					aggregation economically rational at all base fee levels (previously only
+					viable above ~0.09 nanoFIL and ~0.065 nanoFIL base fee respectively).
+					Expected per-sector gas reductions: ~3.6&times; for batched PreCommit,
+					~2&times; for aggregated ProveCommit. Hard protocol batch-size caps were
+					also lifted. <a href="https://github.com/filecoin-project/FIPs/blob/master/FIPS/fip-0100.md" target="_blank" rel="noopener">[fip-100 spec &#x2197;]</a>
+					<a href="https://github.com/filecoin-project/FIPs/discussions/1105" target="_blank" rel="noopener">[discussion &#x2197;]</a>
+				</div>
 				<MultiLineChart
 					data={precommitSectorBatchSize}
 					x="date"
@@ -357,9 +389,9 @@ const renewalRateSubtitleSuffix =
 				<LineChart
 					data={smallBatchCount}
 					x="date"
-					y="small_batch_pct"
-					label="Small Batch % (< 4 sectors)"
-					subtitle="% of PreCommitSectorBatch2 messages below break-even batch size"
+					y="fuller_batch_pct"
+					label="Fuller Batch % (>= 4 sectors)"
+					subtitle="% of PreCommitSectorBatch2 messages at or above break-even batch size (>= 4 sectors). Higher = more efficient onboarding."
 					yLabel="%"
 				/>
 				<LineChart

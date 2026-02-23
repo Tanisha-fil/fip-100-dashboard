@@ -27,9 +27,10 @@ with per_message as (
 
 select
     date,
-    countif(sector_count < 4) as small_batch_count,
-    count(*) as total_batch_count,
-    round(100.0 * countif(sector_count < 4) / count(*), 2) as small_batch_pct
+    countif(sector_count < 4)                                             as small_batch_count,
+    count(*)                                                              as total_batch_count,
+    round(100.0 * SAFE_DIVIDE(countif(sector_count < 4),  count(*)), 2)  as small_batch_pct,
+    round(100.0 * SAFE_DIVIDE(countif(sector_count >= 4), count(*)), 2)  as fuller_batch_pct
 from per_message
 group by date
 order by date desc
@@ -38,5 +39,8 @@ order by date desc
 data = client.query(sql).to_arrow(create_bqstorage_client=False)
 
 df = pl.DataFrame(data).with_columns(pl.col("date").dt.strftime("%Y-%m-%d"))
+
+totals = (df["small_batch_pct"] + df["fuller_batch_pct"]).drop_nulls()
+assert (totals - 100).abs().max() < 0.5, "small_batch_pct + fuller_batch_pct should sum to ~100"
 
 df.write_json(f"public/{Path(__file__).stem}.json")
