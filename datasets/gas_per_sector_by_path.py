@@ -74,11 +74,7 @@ sectors_per_msg as (
             when pm.method = 'PreCommitSectorBatch2'
                 then array_length(json_extract_array(pm.params, '$.Sectors'))
             when pm.method = 'ProveCommitSectors3'
-                then coalesce(
-                    array_length(json_extract_array(pm.params, '$.SectorNumbers')),
-                    array_length(json_extract_array(pm.params, '$.SectorProofs')),
-                    array_length(json_extract_array(pm.params, '$.Sectors'))
-                )
+                then array_length(json_extract_array(pm.params, '$.SectorActivations'))
             when pm.method = 'ProveReplicaUpdates3'
                 then coalesce(
                     array_length(json_extract_array(pm.params, '$.SectorUpdates')),
@@ -86,13 +82,7 @@ sectors_per_msg as (
                     array_length(json_extract_array(pm.params, '$.SectorNumbers'))
                 )
             when pm.method = 'ProveCommitAggregate'
-                then coalesce(
-                    cast(json_extract_scalar(pm.params, '$.AggregateSize') as int64),
-                    cast(json_extract_scalar(pm.params, '$.AggregateSectorCount') as int64),
-                    array_length(json_extract_array(pm.params, '$.SectorNumbers')),
-                    array_length(json_extract_array(pm.params, '$.SectorProofs')),
-                    array_length(json_extract_array(pm.params, '$.Sectors'))
-                )
+                then array_length(json_extract_array(pm.params, '$.SectorNumbers'))
             else 1
         end as param_sector_count
     from `lily-data.lily.parsed_messages` pm

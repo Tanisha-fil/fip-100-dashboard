@@ -16,6 +16,7 @@ import burnComposition from "../../public/burn_composition.json";
 import circulatingSupplyVsBurn from "../../public/circulating_supply_vs_burn.json";
 import sectorExtensions from "../../public/sector_extensions.json";
 import renewalRate from "../../public/renewal_rate.json";
+import ddoSectorOnboarding from "../../public/ddo_sector_onboarding.json";
 
 const toNumber = (value: unknown): number | null => {
 	if (value === null || value === undefined || value === "") return null;
@@ -355,7 +356,7 @@ const renewalRateSubtitleSuffix =
 					ys={["avg_sectors_per_message", "median_sectors_per_message"]}
 					labels={["Mean batch size", "Median batch size"]}
 					title="PreCommitSectorBatch2 Batch Size (Mean & Median)"
-					subtitle="Source: PreCommitSectorBatch2 messages"
+					subtitle="Batch size from params.Sectors array length. Source: PreCommitSectorBatch2 messages in lily parsed_messages"
 					yLabel="Sectors"
 				/>
 				<MultiLineChart
@@ -373,9 +374,9 @@ const renewalRateSubtitleSuffix =
 						ys={["avg_aggregate_size", "median_aggregate_size"]}
 						labels={["Mean proof-aggregation size", "Median proof-aggregation size"]}
 						title="ProveCommitAggregate Size (Mean & Median)"
-						subtitle="ProveCommitAggregate is rarely used (~30 days of data); most miners use ProveCommitSectors3 instead. Source: parsed_messages"
+						subtitle="ProveCommitAggregate aggregate size derived from params.SectorNumbers array (chain events used as fallback). Sparse: most miners use ProveCommitSectors3 instead. Source: parsed_messages"
 						yLabel="Sectors"
-						noDataMessage="ProveCommitAggregate messages are present, but aggregate-size values are unavailable in current source data. See 'Daily Batch & Aggregate Message Count' above for usage."
+						noDataMessage="ProveCommitAggregate sector count is derived from the SectorNumbers param array (not AggregateSize, which is unreliable). Data may be sparse if SectorNumbers is absent."
 					/>
 				<MultiLineChart
 					data={gasPerSectorByPath}
@@ -383,8 +384,17 @@ const renewalRateSubtitleSuffix =
 					ys={["PreCommitSectorBatch2", "ProveCommitSectors3", "ProveCommitAggregate", "ProveReplicaUpdates3"]}
 					labels={["PreCommitSectorBatch2", "ProveCommitSectors3", "ProveCommitAggregate", "ProveReplicaUpdates3"]}
 					title="Avg Gas per Sector by Onboarding Path"
-					subtitle="Only PreCommitSectorBatch2 has sufficient data in Lily; ProveCommitSectors3/Aggregate/ReplicaUpdates3 columns are sparse or empty. Source: derived_gas_outputs joined with parsed_messages"
+					subtitle="PCS3 sector count from params.SectorActivations (corrected); ProveCommitAggregate from params.SectorNumbers (chain events as fallback). Source: derived_gas_outputs joined with parsed_messages"
 					yLabel="nanoFIL"
+				/>
+				<MultiLineChart
+					data={ddoSectorOnboarding}
+					x="date"
+					ys={["ddo_sectors", "non_ddo_sectors"]}
+					labels={["DDO Sectors", "Non-DDO (StorageMarket) Sectors"]}
+					title="DDO vs Non-DDO Sector Onboarding (PCS3 only)"
+					subtitle="Daily sector count via ProveCommitSectors3. DDO = sector Pieces.Notify does not call StorageMarket actor (f05). Non-DDO = at least one piece notifies f05. CC sectors counted as DDO. Excludes ProveCommitAggregate. Source: parsed_messages"
+					yLabel="Sectors"
 				/>
 				<LineChart
 					data={smallBatchCount}

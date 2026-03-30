@@ -66,13 +66,7 @@ aggregate_base as (
     select
         datetime_trunc(timestamp_seconds(((height * 30) + 1598306400)), day) as date,
         cid,
-        coalesce(
-            cast(json_extract_scalar(params, '$.AggregateSize') as int64),
-            cast(json_extract_scalar(params, '$.AggregateSectorCount') as int64),
-            array_length(json_extract_array(params, '$.SectorNumbers')),
-            array_length(json_extract_array(params, '$.SectorProofs')),
-            array_length(json_extract_array(params, '$.Sectors'))
-        ) as param_agg_size
+        array_length(json_extract_array(params, '$.SectorNumbers')) as param_agg_size
     from `lily-data.lily.parsed_messages`
     where height > 4000000
       and method = 'ProveCommitAggregate'
