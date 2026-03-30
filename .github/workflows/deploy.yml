@@ -21,8 +21,8 @@ jobs:
       - name: Install the latest version of uv
         uses: astral-sh/setup-uv@v7
       - name: Generate data files
-        if: ${{ secrets.ENCODED_GOOGLE_APPLICATION_CREDENTIALS != '' }}
         run: make data
+        continue-on-error: true
         env:
           ENCODED_GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.ENCODED_GOOGLE_APPLICATION_CREDENTIALS }}
       - name: Install, build, and upload your site output
