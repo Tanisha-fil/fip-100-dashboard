@@ -28,6 +28,12 @@ client = bigquery.Client(credentials=creds, project=info["project_id"])
 # Chain-state philosophy (per Starboard): use miner_sector_events as primary
 # source for counts where possible; params used here because DDO detection
 # specifically requires inspecting the Notify field, which is only in params.
+#
+# Query approach: avoid per-sector correlated unnest (too expensive). Instead:
+#  1. Unnest SectorActivations once per message (not per piece).
+#  2. Use REGEXP_CONTAINS on the raw sector JSON to detect f05 calls.
+#     A sector is non-DDO if its Pieces JSON contains '"Address":"f05"' or
+#     '"Address": "f05"'. This is much cheaper than unnesting Pieces per sector.
 
 sql = """
 with base as (
@@ -35,23 +41,21 @@ with base as (
         datetime_trunc(timestamp_seconds(((height * 30) + 1598306400)), day) as date,
         params
     from `lily-data.lily.parsed_messages`
-    where height > 4000000
+    -- height > ~5300000 ≈ last 6 months from epoch 2026-03; reduces scan cost ~8x vs height > 4000000
+    where height > 5300000
       and method = 'ProveCommitSectors3'
 ),
 per_sector as (
     select
         date,
-        -- A sector is non-DDO if at least one of its pieces calls the StorageMarket
-        -- actor (f05) via Notify. CC sectors have Pieces=null and are counted as DDO.
-        coalesce(
-            (
-                select countif(json_value(piece, '$.Notify[0].Address') = 'f05') > 0
-                from unnest(json_query_array(sector, '$.Pieces')) as piece
-            ),
-            false
+        -- A sector calls f05 (non-DDO) if its Pieces JSON contains an f05 Address.
+        -- CC sectors have no Pieces key at all and are counted as DDO.
+        REGEXP_CONTAINS(
+            TO_JSON_STRING(JSON_QUERY(sector, '$.Pieces')),
+            r'"Address"\\s*:\\s*"f05"'
         ) as calls_f05
     from base,
-    unnest(json_query_array(params, '$.SectorActivations')) as sector
+    unnest(JSON_QUERY_ARRAY(params, '$.SectorActivations')) as sector
 )
 select
     date,
